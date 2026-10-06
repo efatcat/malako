@@ -60,9 +60,10 @@ button.opt.bad{background:#fee2e2;border-color:var(--bad);color:#991b1b}
 
 <script>
 // ================= КОНФИГУРАЦИЯ ССЫЛОК =================
+const urlParams = new URLSearchParams(window.location.search);
 const CONFIG = {
-  questionsCount: 20,
-  redirectURL: "https://www.google.com/search?q=молоко"
+  questionsCount: parseInt(urlParams.get('count')) || 20,
+  redirectURL: urlParams.get('redirect') || "https://www.google.com/search?q=молоко"
 };
 // ========================================================
 
@@ -1072,6 +1073,7 @@ const Q = [
 
 // ================= ЛОГИКА =================
 let idx = 0;
+let score = 0;
 let order = [];
 let currentCorrectText = "";
 
@@ -1087,6 +1089,7 @@ function shuffle(arr){
 function start(){
   order = shuffle([...Array(Q.length).keys()]).slice(0, CONFIG.questionsCount);
   idx = 0;
+  score = 0;
   document.getElementById('start').classList.add('hidden');
   document.getElementById('quiz').classList.remove('hidden');
   render();
@@ -1103,7 +1106,6 @@ function render(){
 
   const box = document.getElementById('opts');
   box.innerHTML = '';
-  // Перемешиваем варианты ответа, чтобы правильный не был всегда первым
   shuffle(q[2]).forEach(opt=>{
     const b = document.createElement('button');
     b.className = 'opt';
@@ -1113,7 +1115,6 @@ function render(){
   });
 }
 
-// Проверка ответа. «Очень правильно» засчитывается, если верен ответ «Правильно».
 function isCorrect(selectedText, correctText){
   if(selectedText === correctText) return true;
   if(selectedText === 'Очень правильно' && correctText === 'Правильно') return true;
@@ -1128,6 +1129,7 @@ function answer(selectedText, btn){
   if(isCorrect(selectedText, currentCorrectText)){
     btn.classList.add('good');
     card.classList.add('flash-ok');
+    score++;
   } else {
     btn.classList.add('bad');
     btns.forEach(b=>{ if(b.textContent === currentCorrectText) b.classList.add('good'); });
@@ -1146,6 +1148,18 @@ function finish(){
   document.getElementById('done').classList.remove('hidden');
   document.getElementById('fill').style.width = '100%';
   document.getElementById('meta').textContent = 'Завершено';
+  
+  // Сохранение результата в localStorage
+  const result = {
+    date: new Date().toISOString(),
+    total: CONFIG.questionsCount,
+    correct: score,
+    percent: Math.round(score / CONFIG.questionsCount * 100)
+  };
+  const history = JSON.parse(localStorage.getItem('malako_results') || '[]');
+  history.push(result);
+  localStorage.setItem('malako_results', JSON.stringify(history));
+  
   setTimeout(()=>{ window.location.href = CONFIG.redirectURL; }, 1800);
 }
 </script>
